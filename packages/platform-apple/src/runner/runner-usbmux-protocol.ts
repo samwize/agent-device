@@ -241,14 +241,14 @@ function readDeviceIdFromList(xml: string, udid: string): number | undefined {
 
 function readListedDevice(
   node: XmlNode,
-): { udid: string; id: number; connectionType: string | undefined } | undefined {
+): { udid: string; id: number; connectionType: string | null | undefined } | undefined {
   if (node.name !== 'dict') return undefined;
   const properties = readDictEntry(node, 'Properties');
   if (properties?.name !== 'dict') return undefined;
   const udid = readDictEntry(properties, 'SerialNumber')?.text;
   const id = Number(readDictEntry(node, 'DeviceID')?.text);
   if (!udid || !Number.isSafeInteger(id) || id <= 0) return undefined;
-  const connectionType = readDictEntry(properties, 'ConnectionType')?.text ?? undefined;
+  const connectionType = readDictEntry(properties, 'ConnectionType')?.text;
   return { udid, id, connectionType };
 }
 
