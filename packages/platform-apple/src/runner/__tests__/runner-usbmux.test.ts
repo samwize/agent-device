@@ -161,6 +161,31 @@ test('selects the requested device by UDID regardless of its position in the lis
   }
 });
 
+test('prefers USB when the same device is also listed over the network', async () => {
+  const usb = { deviceId: 77, udid: DEVICE_UDID, connectionType: 'USB' };
+  const network = { deviceId: 88, udid: DEVICE_UDID, connectionType: 'Network' };
+
+  for (const devices of [
+    [network, usb],
+    [usb, network],
+  ]) {
+    const socketPath = await createSocketPath(socketDirectories);
+    const server = await serveUsbmuxDevices(socketPath, devices);
+    await postThroughFakeUsbmux(socketPath, DEVICE_UDID);
+    assert.equal(server.connectedDeviceId(), 77);
+  }
+});
+
+test('uses the network entry when the requested device has no USB entry', async () => {
+  const socketPath = await createSocketPath(socketDirectories);
+  const server = await serveUsbmuxDevices(socketPath, [
+    { deviceId: 88, udid: DEVICE_UDID, connectionType: 'Network' },
+    { deviceId: 77, udid: 'another-device', connectionType: 'USB' },
+  ]);
+  await postThroughFakeUsbmux(socketPath, DEVICE_UDID);
+  assert.equal(server.connectedDeviceId(), 88);
+});
+
 test('never matches a different device whose UDID merely shares a prefix', async () => {
   const socketPath = await createSocketPath(socketDirectories);
   const server = await serveUsbmuxDevices(socketPath, [

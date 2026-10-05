@@ -229,21 +229,27 @@ function buildPlistMessage(
 }
 
 function readDeviceIdFromList(xml: string, udid: string): number | undefined {
+  let fallbackId: number | undefined;
   for (const node of walkXmlNodes(parseXmlDocumentSync(xml))) {
     const device = readListedDevice(node);
-    if (device?.udid === udid) return device.id;
+    if (device?.udid !== udid) continue;
+    if (device.connectionType === 'USB') return device.id;
+    fallbackId ??= device.id;
   }
-  return undefined;
+  return fallbackId;
 }
 
-function readListedDevice(node: XmlNode): { udid: string; id: number } | undefined {
+function readListedDevice(
+  node: XmlNode,
+): { udid: string; id: number; connectionType: string | undefined } | undefined {
   if (node.name !== 'dict') return undefined;
   const properties = readDictEntry(node, 'Properties');
   if (properties?.name !== 'dict') return undefined;
   const udid = readDictEntry(properties, 'SerialNumber')?.text;
   const id = Number(readDictEntry(node, 'DeviceID')?.text);
   if (!udid || !Number.isSafeInteger(id) || id <= 0) return undefined;
-  return { udid, id };
+  const connectionType = readDictEntry(properties, 'ConnectionType')?.text ?? undefined;
+  return { udid, id, connectionType };
 }
 
 function readPlistInteger(xml: string, key: string): number | undefined {
